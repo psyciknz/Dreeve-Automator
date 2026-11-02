@@ -1,10 +1,13 @@
-# Strava Running Title/Description Automation
+# Dreeve Running Title/Description Automation
 
 ## Introduction
 I enjoy running regularly, and have done so for as long as I have been programming. Strava is a powerful app for athletes to post activities in a simple, effective way. However, the **default titles** provided lack depth, simply denoting the time of day followed by the sport type. The description is also **empty** by default.
 
+But as they made heavy changes to their API, many self hosted projects were excluded from their eco-system and so looked elsewhere.
+https://Dreeve.App is one such self hosted replacement.
+
 ## Solution
-This project aims to automate the title and descriptions of new runs that are detected, using the **Strava API**. An input configuration file is taken, and titles and descriptions can be deduced using a set of rules concerning activity distance, duration, date/time and even route, alongside other metrics.
+This project aims to automate the title and descriptions of new runs that are detected, using the **Dreeve API**. An input configuration file is taken, and titles and descriptions can be deduced using a set of rules concerning activity distance, duration, date/time and even route, alongside other metrics.
 
 After effective development, a robust command line solution has been implemented, with the following features:
 - **Configuration JSON** file with API credentials, markers, title/description templates and a few other settings. Thorough validation will be included for good practice in a vital skill.
@@ -21,7 +24,7 @@ Warning: The program is not simple to use, particularly in terms of input. This 
 
 Setup Requirements:
 - The program has been designed to work on **Windows and Linux**. There is no reason it should not work on MacOS, but this has not been confirmed.
-- Ensure you create your own **Strava Application** for this program. This is needed because this project relies on the Strava API which is on a per-app basis. Start here: https://developers.strava.com/. Note the client secret and client ID once successful - these credentials are required by the program.
+- Ensure you create your own **Dreeve.App** API key for this program. This is needed because this project relies on the Strava API which is on a per-app basis. Start here: https://docs.dreeve.app./api. 
 - Ensure you have **Python 3.10** or above installed.
 - Install the required 3rd party libraries in the `requirements.txt` file using pip as usual. See the comments as to why the libraries are included.
 - Download and extract the ZIP file in the Release section of this repository.
@@ -47,8 +50,4 @@ Unsurprisingly, despite its positives, the program currently has countless limit
 - The **weather** integration feature relies on another project in a **weird** way. This is hard to set up and keep working as it rigidly relies on another external software in a clumsy way.
 
 ## Disclaimer
-The project uses a personal Strava API account to run, and API credentials will obviously not be shared. It is for demonstration of various programming skills and just the concept of such a simple yet pleasant program. The project is to be run on the cloud for personal use, so a CLI has been developed only. But if this project gets popular enough and there is enough encouragement, I, and perhaps even any fellow volunteer contributors, may consider extending this project to a web app which can then have several users with a nice web interface, for general use for many runners. Let me know if you are interested in further development of this project, and I will certainly consider it, perhaps scaling it to a more user-friendly app/website.
-
-The program is nothing without a Strava Application. For more details, refer to: https://developers.strava.com/.
-
-Despite only being a personal project, the code in this repository has been made public and therefore is free to use for your own purposes. However, there will be no liability for any damages caused by usage of this code. 
+Thanks to https://github.com/leoz0214/Strava-Running-Name-Automation for the basis of this project.   And of course thanks to  https://github.com/dreeveapp/dreeve for being such a good platform to migrate to.
