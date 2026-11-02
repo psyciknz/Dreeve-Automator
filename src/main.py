@@ -4,7 +4,7 @@ import time
 import timeit
 
 import activity
-import api
+import dreeve_api
 import configure
 import generate
 from const import LOG_FILE
@@ -17,15 +17,16 @@ def main() -> None:
         encoding="utf8", level=logging.INFO,
         format= "%(asctime)s: %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S")
+    try:
+        config = configure.get_config()
+    except Exception as e:
+        logging.error(f"Config file error: {e}")
+        return
+    session = dreeve_api.create_session(
+        config.dreeve_url, config.dreeve_api_key)
     while True:
         start = timeit.default_timer()
-        try:
-            config = configure.get_config()
-        except Exception as e:
-            logging.error(f"Config file error: {e}")
-            return
-        access_token = api.get_access_token(config)
-        activities = activity.get_activities(access_token)
+        activities = activity.get_activities(session)
         for activity_ in activities:
             if not activity.can_process_activity(activity_):
                 continue
@@ -35,7 +36,7 @@ def main() -> None:
             except RuntimeError:
                 continue
             activity.update_activity(
-                activity_.id, title, description, access_token)
+                activity_.id, title, description, session)
         if activities:
             logging.info("New activities processed and any renames applied.")
         else:

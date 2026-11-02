@@ -83,36 +83,13 @@ class RouteTemplate(Template):
 @dataclass
 class Config:
     """All configuration data stored in one data class."""
-    client_id: int
-    client_secret: str
+    dreeve_url: str
+    dreeve_api_key: str
     refresh_minutes: int
     markers: Markers | None
     templates: list[Template] | None
     route_templates: list[RouteTemplate] | None
     heart_rate_zones: dict[int, int] | None
-
-
-def validate_client_id(client_id: int) -> None:
-    """Checks the client ID is a sensible integer."""
-    if isinstance(client_id, str) and client_id.isdigit():
-        client_id = int(client_id)
-    if not isinstance(client_id, int):
-        raise TypeError("Client ID must be an integer.")
-    if client_id < 0:
-        raise ValueError("Invalid client ID.")
-
-
-def validate_client_secret(client_secret: str) -> None:
-    """Checks the client secret is a valid lowercase hex string."""
-    if not isinstance(client_secret, str):
-        raise TypeError("Client secret must be a string.")
-    if not client_secret:
-        raise ValueError("Client secret must not be empty.")
-    if any(char not in string.hexdigits for char in client_secret):
-        raise ValueError("Client secret must be hexadecimal.")
-    if not client_secret.islower():
-        raise ValueError(
-            "Client secret is case-sensitive and must be fully lowercase.")
 
 
 def validate_refresh_minutes(refresh_minutes: int) -> None:
@@ -639,15 +616,13 @@ def get_config() -> Config:
         raise TypeError("JSON data must be a dict, not an array.")
     
     try:
-        client_id = data["client_id"]
-        validate_client_id(client_id)
+        dreeve_url = data["dreeve_url"]
     except KeyError:
-        raise ValueError("Client ID not provided.")
+        raise ValueError("dreeve url not provided.")
     try:
-        client_secret = data["client_secret"]
-        validate_client_secret(client_secret)
+        dreeve_api_key = data["dreeve_api_key"]
     except KeyError:
-        raise ValueError("Client secret not provided.")
+        raise ValueError("dreeve API key not provided.")
     
     refresh_minutes = data.get("refresh_minutes", DEFAULT_REFRESH_MINUTES)
     validate_refresh_minutes(refresh_minutes)
@@ -741,5 +716,5 @@ def get_config() -> Config:
         route_templates = route_templates_list
 
     return Config(
-        client_id, client_secret, refresh_minutes,
+        dreeve_url, dreeve_api_key, refresh_minutes,
         markers, templates, route_templates, heart_rate_zones)
