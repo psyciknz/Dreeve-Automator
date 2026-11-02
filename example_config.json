@@ -1,6 +1,6 @@
 {
-    "client_id": 999999999,
-    "client_secret": "your_client_secret",
+    "dreeve_url": "http://localhost:8080",
+    "dreeve_api_key": "your_dreeve_api_key",
     "refresh_minutes": 10,
     "hr_zones": {
         "5": 180,
