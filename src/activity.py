@@ -9,6 +9,7 @@ import sqlite3
 from dataclasses import dataclass
 
 import dreeve_api
+import strava_api
 from const import SEEN_ACTIVITIES_FILE, WEATHER_DB_FILE
 from utils import haversine_distance
 
@@ -151,32 +152,33 @@ def get_activity(activity_id: int, session: dreeve_api.ApiSession) -> Activity:
     url = GET_ACTIVITY_URL.format(id=activity_id)
     data = dreeve_api.get(
         session, url, validate_function=dreeve_api.is_status_200).json()
-    title = data["name"]
-    description = data["description"]
-    activity_type = data["type"]
-    distance = data["distance"] / 1000 # m to km
-    moving_time = data["moving_time"]
-    elapsed_time = data["elapsed_time"]
+    title = data[dreeve_api.ACTIVITY_NAME_KEY]
+    description = data[dreeve_api.ACTIVITY_DESCRIPTION_KEY]
+    activity_type = data[dreeve_api.ACTIVITY_TYPE_KEY]
+    distance = data[dreeve_api.ACTIVITY_DISTANCE_KEY] / 1000 # m to km
+    moving_time = data[dreeve_api.ACTIVITY_MOVING_TIME_KEY]
+    elapsed_time = data[dreeve_api.ACTIVITY_ELAPSED_TIME_KEY]
     pace = moving_time / distance # s/km
     start_date_time = dt.datetime.fromisoformat(
-        data["start_date_local"][:ISO_DATE_LENGTH]) # Ignore time zone info.
-    elevation = data.get("total_elevation_gain")
+        data[dreeve_api.ACTIVITY_START_DATE_LOCAL_KEY][:ISO_DATE_LENGTH])
+    elevation = data.get(dreeve_api.ACTIVITY_TOTAL_ELEVATION_GAIN_KEY)
     elevation_per_km = elevation / distance if elevation is not None else None
     cadence = (
-        data["average_cadence"] * 2 if data.get("average_cadence") is not None
+        data[dreeve_api.ACTIVITY_AVERAGE_CADENCE_KEY] * 2
+        if data.get(dreeve_api.ACTIVITY_AVERAGE_CADENCE_KEY) is not None
         else None) # One -> both feet steps.
 
     stream_url = GET_ACTIVITY_STREAMS_URL.format(id=activity_id)
     keys = []
-    has_location = bool(data.get("start_latlng"))
+    has_location = bool(data.get(dreeve_api.ACTIVITY_START_LATLNG_KEY))
     if has_location:
-        keys.append("latlng")
-    if data["has_heartrate"]:
-        keys.append("heartrate")
+        keys.append(dreeve_api.ACTIVITY_STREAM_LATLNG_KEY)
+    if data[dreeve_api.ACTIVITY_HAS_HEARTRATE_KEY]:
+        keys.append(dreeve_api.ACTIVITY_STREAM_HEARTRATE_KEY)
     if keys:
         # Also need time stream if collecting HR stream - for zones duration.
-        if "heartrate" in keys:
-            keys.append("time")
+        if dreeve_api.ACTIVITY_STREAM_HEARTRATE_KEY in keys:
+            keys.append(dreeve_api.ACTIVITY_STREAM_TIME_KEY)
         params = {
             "keys": ",".join(keys),
             "key_by_type": True
@@ -184,9 +186,13 @@ def get_activity(activity_id: int, session: dreeve_api.ApiSession) -> Activity:
         stream_data = dreeve_api.get(
             session, stream_url, params,
             dreeve_api.is_status_200).json()
-        lat_long_stream = stream_data.get("latlng", {}).get("data")
-        heart_rate_stream = stream_data.get("heartrate", {}).get("data")
-        time_stream = stream_data.get("time", {}).get("data")
+        lat_long_stream = stream_data.get(
+            dreeve_api.ACTIVITY_STREAM_LATLNG_KEY, {}).get(
+                dreeve_api.ACTIVITY_STREAM_DATA_KEY)
+        heart_rate_stream = stream_data.get(
+            dreeve_api.ACTIVITY_STREAM_HEARTRATE_KEY, {})
+        time_stream = stream_data.get(
+            dreeve_api.ACTIVITY_STREAM_TIME_KEY, {})
         # Verify HR stream is the same length as the time stream.
         if (
             heart_rate_stream is not None
@@ -199,7 +205,8 @@ def get_activity(activity_id: int, session: dreeve_api.ApiSession) -> Activity:
         heart_rate_stream = None
         time_stream = None
     if has_location:
-        weather = get_weather(start_date_time, *data["start_latlng"])
+        weather = get_weather(
+            start_date_time, *data[dreeve_api.ACTIVITY_START_LATLNG_KEY])
     else:
         weather = None
     return Activity(

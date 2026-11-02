@@ -1,5 +1,5 @@
 """
-Code that interfaces with the Strava API. All requests to the API are wrapped
+Code that interfaces with the Dreeve API. All requests to the API are wrapped
 here to automatically handle new access token generation etc.
 """
 import logging
@@ -11,6 +11,21 @@ import requests as rq
 DEFAULT_MAX_REQUEST_ATTEMPTS = 3
 REQUEST_TIMEOUT = 30
 
+ACTIVITY_NAME_KEY = "name"
+ACTIVITY_DESCRIPTION_KEY = "description"
+ACTIVITY_TYPE_KEY = "sportType"
+ACTIVITY_DISTANCE_KEY = "distanceInMeter"
+ACTIVITY_MOVING_TIME_KEY = "movingTimeInSeconds"
+ACTIVITY_ELAPSED_TIME_KEY = "elapsedTimeInSeconds"
+ACTIVITY_START_DATE_LOCAL_KEY = "startDateLocal"
+ACTIVITY_TOTAL_ELEVATION_GAIN_KEY = "elevationInMeter"
+ACTIVITY_AVERAGE_CADENCE_KEY = "averageCadence"
+ACTIVITY_HAS_HEARTRATE_KEY = "averageHeartRate"
+ACTIVITY_START_LATLNG_KEY = "startLatLng"
+ACTIVITY_STREAM_LATLNG_KEY = "latlng"
+ACTIVITY_STREAM_HEARTRATE_KEY = "heartRate"
+ACTIVITY_STREAM_TIME_KEY = "timeInSeconds"
+ACTIVITY_STREAM_DATA_KEY = "latLng"
 
 class ApiSession(rq.Session):
     """Requests session that resolves relative URLs against a configured API."""
