@@ -127,7 +127,7 @@ def patch(
     """PATCH request wrapper with the same retry and validation behavior."""
     return make_request(
         lambda: session.patch(
-            url, data=data, timeout=REQUEST_TIMEOUT),
+            url, json=data, timeout=REQUEST_TIMEOUT),
         validate_function, attempts)
 
 

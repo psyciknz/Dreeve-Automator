@@ -9,7 +9,6 @@ import sqlite3
 from dataclasses import dataclass
 
 import dreeve_api
-import strava_api
 from const import SEEN_ACTIVITIES_FILE, WEATHER_DB_FILE
 from utils import haversine_distance
 
@@ -78,6 +77,7 @@ class Activity:
     elapsed_time: int
     pace: float
     start_date_time: dt.datetime
+    start_lat_long: list[float] | None
     elevation: float | None
     elevation_per_km: float | None
     cadence: float | None
@@ -93,7 +93,7 @@ def get_seen_activities() -> set[int]:
         return set()
     with SEEN_ACTIVITIES_FILE.open("r", encoding="utf8") as f:
         return set(
-            map(int, f.read().splitlines()[-MAX_SEEN_ACTIVITIES_COUNT:]))
+            map(str, f.read().splitlines()[-MAX_SEEN_ACTIVITIES_COUNT:]))
 
 
 def update_seen_activities(seen_activities: set[int]) -> None:
@@ -161,6 +161,7 @@ def get_activity(activity_id: int, session: dreeve_api.ApiSession) -> Activity:
     pace = moving_time / distance # s/km
     start_date_time = dt.datetime.fromisoformat(
         data[dreeve_api.ACTIVITY_START_DATE_LOCAL_KEY][:ISO_DATE_LENGTH])
+    start_lat_long = data.get(dreeve_api.ACTIVITY_START_LATLNG_KEY)
     elevation = data.get(dreeve_api.ACTIVITY_TOTAL_ELEVATION_GAIN_KEY)
     elevation_per_km = elevation / distance if elevation is not None else None
     cadence = (
@@ -187,8 +188,7 @@ def get_activity(activity_id: int, session: dreeve_api.ApiSession) -> Activity:
             session, stream_url, params,
             dreeve_api.is_status_200).json()
         lat_long_stream = stream_data.get(
-            dreeve_api.ACTIVITY_STREAM_LATLNG_KEY, {}).get(
-                dreeve_api.ACTIVITY_STREAM_DATA_KEY)
+            dreeve_api.ACTIVITY_STREAM_DATA_KEY, {})
         heart_rate_stream = stream_data.get(
             dreeve_api.ACTIVITY_STREAM_HEARTRATE_KEY, {})
         time_stream = stream_data.get(
@@ -211,7 +211,7 @@ def get_activity(activity_id: int, session: dreeve_api.ApiSession) -> Activity:
         weather = None
     return Activity(
         activity_id, title, description, activity_type, distance, moving_time,
-        elapsed_time, pace, start_date_time, elevation, elevation_per_km,
+        elapsed_time, pace, start_date_time, start_lat_long,elevation, elevation_per_km,
         cadence, lat_long_stream, heart_rate_stream, time_stream, weather)
 
 
@@ -258,6 +258,9 @@ def can_process_activity(activity: Activity) -> bool:
             f"Activity {activity.id} will not be processed because "
             "it has a non-empty description.")
     else:
+        logging.info(
+            f"Activity {activity.id} can be processed by the program."
+        )
         return True
     return False
 
@@ -272,8 +275,8 @@ def update_activity(
     """
     url = PATCH_ACTIVITY_URL.format(id=activity_id)
     data = {
-        "name": title,
-        "description": description
+        "name": title
+        #,        "description": description
     }
     dreeve_api.patch(
         session, url, data, dreeve_api.is_status_200)

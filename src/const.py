@@ -8,6 +8,7 @@ CONFIG_FILE = DATA_FOLDER / "config.json"
 LOG_FILE = DATA_FOLDER / "log.log"
 CREDENTIALS_FILE = DATA_FOLDER / "_credentials.json"
 SEEN_ACTIVITIES_FILE = DATA_FOLDER / "_seen_activities.txt"
+COUNTERS_FILE = DATA_FOLDER / "counters.json"
 # BBC Weather data database. This will change depending
 # depending the location of the DB.
 # At least this is better than hard-coding the absolute path...
@@ -18,6 +19,7 @@ if platform.system() == "Windows":
 else:
     WEATHER_FOLDER = FOLDER.parent / "weather_automate"
 WEATHER_DB_FILE = WEATHER_FOLDER / "data" / "database.db"
+
 
 BIN_FOLDER = FOLDER / "bin"
 GEO_DLL_FILE = BIN_FOLDER / "geo.dll"

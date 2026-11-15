@@ -13,9 +13,11 @@ from typing import Callable
 
 import activity
 import configure
+import counters
 from const import GEO_DLL_FILE, GEO_SO_FILE
 from utils import (
     hhmm_to_minutes, haversine_distance, seconds_to_mmss, seconds_to_hhmmss)
+
 
 
 priority_key = lambda template: (
@@ -55,6 +57,11 @@ def get_c_lat_long_array(lat_long_stream: list[list[float]]) -> ctypes.Array:
     for lat_long in lat_long_stream:
         lat_long_list.extend(lat_long)
     lat_long_array = array.array("d", lat_long_list)
+    return (ctypes.c_double * len(lat_long_array)).from_buffer(lat_long_array)
+
+def get_c_lat_long_point(lat_long_stream: list[float]) -> ctypes.Array:
+    """Returns lat/long stream as C-array of doubles for C++ processing."""
+    lat_long_array = array.array("d", lat_long_stream)
     return (ctypes.c_double * len(lat_long_array)).from_buffer(lat_long_array)
 
 
@@ -357,6 +364,17 @@ def get_weather_text(weather: activity.Weather) -> str:
         f"Pressure: {weather.pressure}mb",
         f"Visibility: {weather.visibility}"))
 
+def get_counter_text(placeholder: str, config: configure.Config) -> str:
+    """Returns a value for a specfied counter.  Updated the current value after user."""
+    metric, key = placeholder.split(".")
+    if metric != "counters":
+        raise RuntimeError
+    counters_dict = counters.get_counters()
+    if key not in counters_dict:
+        counters_dict[key] = 0
+    counters_dict[key] += 1
+    counters.update_counters(counters_dict)
+    return str(counters_dict[key])
 
 def get_placeholder_value(
     activity_: activity.Activity, placeholder: str, config: configure.Config,
@@ -386,6 +404,9 @@ def get_placeholder_value(
             return get_date_text(
                 activity_.start_date_time.date(), placeholder,
                 config, is_description)
+        case "counters":
+            return get_counter_text(placeholder,
+                config)
         case _:
             value = {
                 "distance": activity_.distance,
@@ -466,6 +487,24 @@ def generate_title_and_description(
     using a suitable template if possible. If a title and description cannot
     be generated, an error is raised.
     """
+    route_templates = sorted(
+                    config.route_templates or [], key=priority_key)
+    # if activity_.start_lat_long is not None:
+            
+    #     if route_templates:
+    #         if c_geo_library is not None:
+    #             lat_longs = get_c_lat_long_point(activity_.start_lat_long)
+    #         for route_template in route_templates:
+    #             if not matching_route_template(
+    #                 activity_, route_template, activity_.start_lat_long
+    #             ):
+    #                 continue
+    #             with suppress(RuntimeError):
+    #                 title = generate_text(
+    #                     activity_, route_template.title, config)
+    #                 description = generate_text(
+    #                     activity_, route_template.description, config, True)
+    #                 return title, description
     if activity_.lat_long_stream is not None:
         lat_longs = activity_.lat_long_stream
         route_templates = sorted(

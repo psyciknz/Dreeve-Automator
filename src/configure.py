@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from const import CONFIG_FILE
+import counters
 
 
 # Sensible ranges/defaults.
@@ -40,6 +41,7 @@ class Markers:
     elevation: dict[str, list]
     elevation_per_km: dict[str, list]
     cadence: dict[str, list]
+    counters: dict[str, list]
 
 
 @dataclass
@@ -120,6 +122,32 @@ def validate_heart_rate_zones(heart_rate_zones: dict[str, int]) -> None:
     if not all(hr1 < hr2 for hr1, hr2 in itertools.pairwise(thresholds)):
         raise ValueError(
             "Heart rate thresholds must increase for increasing zones.")
+        
+def validate_counters(counters_list: list) -> None:
+    """Ensure counters are valid."""
+    if not isinstance(counters_list, list):
+        raise TypeError("Counters must be a list.")
+    
+    counters_isdirty = False
+    counters_dict = counters.get_counters()
+    
+    # check for anything in the counters file because it's been used once
+    if counters_dict is not None and len(counters_dict) > 0:
+        for counter in counters_list:
+            if counter in counters_dict and not isinstance(counters_dict[counter], int):
+                raise TypeError("Counter values must be integers.")
+            if counter not in counters_dict:
+                counters_dict[counter] = 0
+                counters_isdirty = True
+                
+    else:
+        # write the initial counters file with the counter markers.
+        for counter in counters_list:
+            counters_dict[counter] = 0
+            counters_isdirty = True
+        
+    if counters_isdirty:
+        counters.update_counters(counters_dict)
     
 
 def valid_marker_key(key: str) -> bool:
@@ -658,10 +686,15 @@ def get_config() -> Config:
         cadence_markers = markers.get("cadence", {})
         if cadence_markers != {}:
             validate_cadence_markers(cadence_markers)
+        counter_markers = markers.get("counters",{})
+        if counter_markers != {}:
+            validate_counters(counter_markers)
+            
         markers = Markers(
             distance_markers, moving_time_markers, elapsed_time_markers,
             pace_markers, start_time_markers, date_markers,
-            elevation_markers, elevation_per_km_markers, cadence_markers)
+            elevation_markers, elevation_per_km_markers, cadence_markers,
+            counter_markers)
 
     heart_rate_zones = data.get("hr_zones")
     if heart_rate_zones is not None:
