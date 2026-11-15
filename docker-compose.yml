@@ -1,0 +1,23 @@
+services:
+  dreeve-ui:
+    build: .
+    image: dreeve-config-ui
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Strongly recommended unless the UI is only reachable on a trusted network
+      # (it edits your Dreeve API key). Put a TLS reverse proxy in front if exposed.
+      DREEVE_UI_USERNAME: ${DREEVE_UI_USERNAME:-}
+      DREEVE_UI_PASSWORD: ${DREEVE_UI_PASSWORD:-}
+      # Where the route-template map opens before any points exist.
+      DREEVE_UI_MAP_LAT: ${DREEVE_UI_MAP_LAT:-20}
+      DREEVE_UI_MAP_LON: ${DREEVE_UI_MAP_LON:-0}
+      DREEVE_UI_MAP_ZOOM: ${DREEVE_UI_MAP_ZOOM:-2}
+    volumes:
+      # config.json, backups/ and (later) counters.json live here. A named volume keeps
+      # permissions simple. To share with the automator, mount the same volume there.
+      - dreeve-ui-data:/data
+
+volumes:
+  dreeve-ui-data:

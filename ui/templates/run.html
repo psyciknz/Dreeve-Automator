@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Run &amp; test</h1>
+<section class="card">
+  <p><strong>Not built yet</strong> &ndash; this is the next phase. Planned, using the vendored
+    <code>generate.py</code> and the Dreeve API settings from the Overview page:</p>
+  <ul>
+    <li><strong>Test mode</strong> &ndash; show the title/description each rule <em>would</em> write, without changing anything
+      (no PATCH to Dreeve, no counters incremented, no seen-activity bookkeeping).</li>
+    <li><strong>Run as configured</strong> &ndash; process activities the automator has not seen yet.</li>
+    <li><strong>Single activity</strong> &ndash; enter an activity id and test or apply the rules to just that activity.</li>
+  </ul>
+</section>
+{% endblock %}
