@@ -78,7 +78,7 @@
     ],
     "route_templates": [
         {
-            "title": "Forest Run - {pace.intensity}",
+            "title": "Forest Run - {pace.intensity} - {counter.countername}",
             "description": "",
             "priority": null,
             "restrict": {
