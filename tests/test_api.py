@@ -1,8 +1,11 @@
+import datetime as dt
 import json
 import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from ui import create_app
 from ui.config_store import SECRET_SENTINEL
@@ -208,6 +211,160 @@ class RouteTemplates(ApiTestCase):
             "title": "Any", "description": ""}).status_code, 201)
         warnings = self.client.get("/api/status").get_json()["warnings"]
         self.assertTrue(any("no route points" in w for w in warnings))
+
+
+class SingleTemplateRun(ApiTestCase):
+    activity_url = (
+        "https://dreeve.internal.andc.nz/activities/"
+        "activity-d9576eb5-fa69-48d3-b350-bdfb4343420b"
+    )
+
+    def fake_activity(self, route=None):
+        return SimpleNamespace(
+            id="activity-d9576eb5-fa69-48d3-b350-bdfb4343420b",
+            title="Morning Run",
+            description="",
+            distance=5.0,
+            pace=360.0,
+            start_date_time=dt.datetime(2026, 1, 1, 7),
+            lat_long_stream=route,
+        )
+
+    def test_test_uses_selected_template_without_patching_or_saving_counters(self):
+        self.seed(
+            markers={"counters": ["total"]},
+            templates=[
+                {"title": "First", "description": ""},
+                {"title": "{counters.total}", "description": "{counters.total}"},
+            ],
+        )
+        import activity
+
+        with (
+            patch.object(activity, "get_activity", return_value=self.fake_activity()) as get_activity,
+            patch.object(activity, "update_activity") as update_activity,
+        ):
+            response = self.post("/api/run", {
+                "activity_url": self.activity_url,
+                "template_type": "templates",
+                "template_index": 1,
+                "action": "test",
+            })
+
+        self.assertEqual(response.status_code, 200, response.get_json())
+        self.assertEqual(response.get_json()["proposed"], {"title": "1", "description": "2"})
+        self.assertFalse(response.get_json()["applied"])
+        self.assertEqual(
+            get_activity.call_args.args[0],
+            "activity-d9576eb5-fa69-48d3-b350-bdfb4343420b",
+        )
+        update_activity.assert_not_called()
+        self.assertFalse((DATA_DIR / "counters.json").exists())
+
+    def test_run_patches_selected_template_title_and_description(self):
+        self.seed(templates=[{
+            "title": "Updated title",
+            "description": "Updated description",
+        }])
+        import activity
+
+        with (
+            patch.object(activity, "get_activity", return_value=self.fake_activity()),
+            patch.object(activity, "update_activity") as update_activity,
+        ):
+            response = self.post("/api/run", {
+                "activity_url": self.activity_url,
+                "template_type": "templates",
+                "template_index": 0,
+                "action": "run",
+            })
+
+        self.assertEqual(response.status_code, 200, response.get_json())
+        self.assertTrue(response.get_json()["applied"])
+        self.assertEqual(
+            update_activity.call_args.args[:3],
+            (
+                "activity-d9576eb5-fa69-48d3-b350-bdfb4343420b",
+                "Updated title",
+                "Updated description",
+            ),
+        )
+
+    def test_route_template_checks_the_selected_route(self):
+        self.seed(route_templates=[{
+            "title": "Route title",
+            "description": "Route description",
+            "restrict": {},
+            "points": [[-41.2, 174.8, 25]],
+        }])
+        import activity
+
+        with patch.object(
+            activity, "get_activity",
+            side_effect=[
+                self.fake_activity([[0, 0]]),
+                self.fake_activity([[-41.2, 174.8]]),
+            ],
+        ):
+            request = {
+                "activity_url": self.activity_url,
+                "template_type": "route_templates",
+                "template_index": 0,
+                "action": "test",
+            }
+            rejected = self.post("/api/run", request)
+            response = self.post("/api/run", request)
+
+        self.assertEqual(rejected.status_code, 422)
+        self.assertEqual(response.status_code, 200, response.get_json())
+        self.assertEqual(response.get_json()["proposed"]["title"], "Route title")
+
+    def test_invalid_activity_url_is_rejected(self):
+        response = self.post("/api/run", {
+            "activity_url": "https://dreeve.internal.andc.nz/activities/123",
+            "template_type": "templates",
+            "template_index": 0,
+            "action": "test",
+        })
+        self.assertEqual(response.status_code, 422)
+
+    def test_valid_template_can_run_while_another_template_is_invalid(self):
+        self.seed(
+            validate=False,
+            templates=[
+                {"title": "{distance.missing}", "description": ""},
+                {"title": "Valid template", "description": ""},
+            ],
+        )
+        import activity
+
+        with patch.object(activity, "get_activity", return_value=self.fake_activity()):
+            response = self.post("/api/run", {
+                "activity_url": self.activity_url,
+                "template_type": "templates",
+                "template_index": 1,
+                "action": "test",
+            })
+
+        self.assertEqual(response.status_code, 200, response.get_json())
+        self.assertEqual(response.get_json()["proposed"]["title"], "Valid template")
+
+    def test_activity_patch_sends_name_and_description(self):
+        import activity
+        import dreeve_api
+
+        session = dreeve_api.ApiSession("http://dreeve.local")
+        with patch.object(dreeve_api, "patch") as patch_activity:
+            activity.update_activity(
+                "activity-sample", "New title", "New description", session)
+
+        self.assertEqual(
+            patch_activity.call_args.args[1:3],
+            (
+                "/api/v1/activities/activity-sample",
+                {"name": "New title", "description": "New description"},
+            ),
+        )
 
 
 class RawAndBackups(ApiTestCase):

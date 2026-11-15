@@ -7,6 +7,10 @@ from flask import Flask, Response, request
 
 from .settings import Settings
 
+"""
+Auth Section.    Will change this to use the dreeve auth module - ideally now with OIDC.
+"""
+
 
 def init_auth(app: Flask, settings: Settings) -> None:
     if not settings.auth_enabled:

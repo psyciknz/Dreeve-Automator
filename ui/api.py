@@ -16,6 +16,7 @@ from .validation import (
     available_placeholders, config_warnings, item_error, meta,
     normalize_item, validate_config, validate_marker_value,
 )
+from .runner import DreeveApiError, run_template
 
 api = Blueprint("api", __name__, url_prefix="/api")
 
@@ -65,6 +66,11 @@ def _invalid(exc):
 @api.errorhandler(RevisionConflict)
 def _conflict(exc):
     return jsonify(error=str(exc)), 409
+
+
+@api.errorhandler(DreeveApiError)
+def _dreeve_error(exc):
+    return jsonify(error=str(exc)), 502
 
 
 @api.errorhandler(ItemNotFound)
@@ -252,6 +258,32 @@ def _register_collection(path: str, key: str, is_route: bool) -> None:
 
 _register_collection("/templates", "templates", is_route=False)
 _register_collection("/route-templates", "route_templates", is_route=True)
+
+
+# ---- single-template run / test ---------------------------------------
+@api.post("/run")
+def run_selected_template():
+    body = _body()
+    activity_url = body.get("activity_url")
+    collection = body.get("template_type")
+    index = body.get("template_index")
+    action = body.get("action")
+    if not isinstance(activity_url, str):
+        raise ConfigInvalid("'activity_url' must be a URL.")
+    if collection not in ("templates", "route_templates"):
+        raise ConfigInvalid("'template_type' must be templates or route_templates.")
+    if type(index) is not int or index < 0:
+        raise ConfigInvalid("'template_index' must be a non-negative integer.")
+    if action not in ("test", "run"):
+        raise ConfigInvalid("'action' must be test or run.")
+
+    expected = _expected_revision()
+    if expected is not None and expected != _store().revision():
+        raise RevisionConflict(
+            "config.json changed on disk since this page was loaded. "
+            "Reload the page to see the latest version.")
+    result = run_template(_load(), activity_url, collection, index, action)
+    return _respond(result)
 
 
 # ---- raw JSON ----------------------------------------------------------

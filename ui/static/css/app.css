@@ -88,6 +88,16 @@ legend { padding: 0 0.4rem; font-weight: 600; }
 .item .err { color: var(--danger); font-size: 0.85rem; margin-top: 0.3rem; }
 .empty { text-align: center; color: var(--muted); padding: 2rem 1rem; }
 
+.run-list { display: grid; gap: 0.75rem; }
+.run-item { margin: 0; }
+.run-item-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.run-item-head h3 { overflow-wrap: anywhere; }
+.run-item .err { color: var(--danger); }
+.run-result { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
+.run-result dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.25rem 0.75rem; margin: 0.5rem 0 0; }
+.run-result dt { color: var(--muted); font-weight: 600; }
+.run-result dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+
 #toasts { position: fixed; right: 1rem; bottom: 1rem; display: grid; gap: 0.5rem; z-index: 3000; }
 .toast { background: var(--text); color: var(--bg); padding: 0.6rem 0.9rem; border-radius: 8px;
   max-width: 24rem; box-shadow: 0 4px 16px rgba(0,0,0,.25); }

@@ -39,8 +39,8 @@ def describe(exc: Exception) -> str:
     return str(exc) or type(exc).__name__
 
 
-def validate_config(data) -> None:
-    """Raise ConfigInvalid with the upstream message if ``data`` is rejected."""
+def config_from_data(data):
+    """Parse and validate config data without filesystem or counter side effects."""
     if not isinstance(data, dict):
         raise ConfigInvalid("The config must be a JSON object.")
     try:
@@ -53,11 +53,16 @@ def validate_config(data) -> None:
         configure.CONFIG_FILE = _MemoryFile(text)
         configure.counters = _NO_COUNTER_IO
         try:
-            configure.get_config()
+            return configure.get_config()
         except Exception as exc:  # upstream raises ValueError/TypeError/KeyError and more
             raise ConfigInvalid(describe(exc)) from exc
         finally:
             configure.CONFIG_FILE, configure.counters = original
+
+
+def validate_config(data) -> None:
+    """Raise ConfigInvalid with the upstream message if ``data`` is rejected."""
+    config_from_data(data)
 
 
 def validate_marker_value(metric: str, value) -> None:

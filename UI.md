@@ -13,7 +13,11 @@ upstream `configure.py` / `const.py` directly, so **validation is the automator'
 | Templates | Create / edit / duplicate / delete; title and description alternatives; priority; distance / pace / start-time restrictions; click-to-insert placeholders taken from your markers |
 | Route templates | As above plus a **Leaflet map**: click to add route points, drag to move, per-point radius, a default radius for new points, "apply radius to all", blacklist points, place search |
 | Raw JSON | Edit the file directly (API key masked), validate, optional "save even if validation fails" |
-| Run & test | Placeholder - next phase (see below) |
+| Run & test | Preview or apply any individual template to one activity URL; run patches the activity title and description |
+
+Enter the activity URL ending in `/activities/activity-<id>`, then use Test or Run on an individual
+template. Test does not patch Dreeve or persist counter increments; Run patches both the activity title and
+description.
 
 Normal saves are validated by upstream `configure.get_config()` before they touch disk, written atomically, and
 the previous version is kept in `backups/`. Saves carry the file's revision, so a change made elsewhere (hand
