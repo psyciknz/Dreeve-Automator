@@ -1,4 +1,4 @@
-# Strava Running Title/Description Automation - Guide
+# Dreeve Running Title/Description Automation - Guide
 
 It is amazing you have decided to venture this far into this project to the point of using it yourself. Anyways, here is a guide on how to use this program yourself, assuming the setup has been completed as instructed.
 
@@ -10,8 +10,8 @@ The program relies on a JSON configuration file as input. The expected file is `
 The input is non-trivial, and it is significantly simpler to rely on an example input file rather than explain every tiny detail, although most details will be covered anyways. Check out the `example_config.json` file for a sample configuration file you can directly copy and edit for your own use case.
 
 ### Configuration Schema
-- `client_id` (integer) - the **client ID** of the Strava app that you plan to use this program with.
-- `client_secret` (hex string) - the **client secret** of the same Strava app.
+- `dreeve_url` (string) - URL of your dreeve instance
+- `dreeve_api_key` (string) - the **API key** for your Dreeve User.
 - `refresh_minutes` (integer) - the number of **minutes per scan** of the past few activities for runs i.e. how often the program fetches activites, processes them and renames them if appropriate. Must be in the range [2, 60]. The shorter this duration, the greater the granularity, but the more API calls are needed. If this setting is not provided, the default is 5 minutes.
 - `hr_zones` - an optional dictionary storing the **threshold heart rate** for each heart rate zone, in beats per minute (must be integers). Heart rate zones go from 1 to 5. Hence, the threshold HR for each zone from 1-5 must be set like seen in the example (increasing for each zone). This field is optional but will be needed if you wish to embed heart rate zone information in the text.
 - `markers` - a major field that allows various activity **metrics** to be able to be interpreted and **mapped to a title/description string** based on a **target range or value**. Importantly, these strings are not necessarily the entire title/description and instead are more likely to be **combined**, alongside hard-coded parts. It will make more sense once the specific examples are discussed.
@@ -76,13 +76,11 @@ This is a detailed yet slightly ambiguous overview of the complex input of the p
 ## Running the Program
 Provided the `data/config.json` file has been correctly filled in, you are hopefully ready to start using the program.
 
-Simply run the `strava.py` top-level script as usual, and the program should begin running smoothly if everything works correctly.
+Simply run the `dreeve.py` top-level script as usual, and the program should begin running smoothly if everything works correctly.
 
 Here is a high-level overview of the program's logic per iteration - explore the source code for a full understanding (or simply read `src/main.py` for an overview):
 - The **configuration file is loaded and thoroughly validated**, raising an error if the input is invalid, with a description of the problem.
-- The Strava API **access token is loaded**.
-    - If there is no access token available (e.g. first time running the program), the OAuth flow occurs, which requires a web browser to complete. If you plan to use a headless cloud server to run the program, make sure to perform one-time OAuth on a device with a browser and copy the credentials file into the required location.
-    - If a previous access token is found, if within 10 minutes of expiry, it is automatically renewed, otherwise it can be used again.
+- The Dreeve API **connected via API Key**.
 - The **last 5 activities are queried** with IDs returned:
     - Seen activtity IDs are recorded by the program such that activities are only processed by the program once.
     - If an activity has already been seen by the program before, it is ignored.
@@ -103,8 +101,8 @@ Setting up this program on a cloud server is one way of keeping it running non-s
 This program has several external files associated with it. These are seen in the `src/const.py` file and can be modified if desired.
 
 - `data/config.json` - **input configuration file** as already mentioned.
+- `data/counters.json` - automatically created counter file.  But if you dont want to start at 0 - this file can be edited.
 - `data/log.log` - the **output log file** highlighting successes, warnings and errors. Logging occurs both live in the console and into this file. It is possible to view this file to know what failed, and when it failed.
-- `_credentials.json` - the **credentials file** containing the access token and related data (expiry date). It should not be modified directly or else the program may malfunction. However, it can of course be moved from one environment to another - such as generating the file locally through OAuth and subsequently using it on the cloud.
 - `_seen_activities.txt` - stores a **list of activity IDs** on new lines, representing activities that have **already been seen** by the program and are not to be re-processed. However, it is possible to safely remove activity IDs from the list in case you wish to re-process it anyways for whatever reason. Moving this file is also suitable.
 - Weather Database - this is a path to the **weather database in another project**. The path seen in the source is my personal circumstances for this, not directly linked to this program. If you are interested in being able to use this weather feature in this project, set up the project and set the path to the database of the weather program. For details, consult: https://github.com/leoz0214/BBC-Weather-Automation.
 - `geo.dll` - the **C++ Windows shared library binary for fast point matching**. A list of points is taken (the points or blacklist for a route template) alongside a list of the latitude/longitude points of the activity, and either all points are checked to be reached by at least 1 latitude/longitude co-ordinate, or no points by touched by any latitude/longitude co-ordinate. This is written in C++ since the algorithm can become slow in Python for larger lists of either type (quadratic time complexity), whereas C++ completes this by a large constant factor faster.
@@ -117,9 +115,10 @@ The Python/C++ source code is evident in the `src` folder. Code has been organis
 
 List of modules in `src`:
 - `activity.py` - fetches recent activities and activity details/streams.
-- `api.py` - Strava API interface including OAuth authentication.
 - `configure.py` - loads and meticulously validates the configuration file.
 - `const.py` - contains useful constants, mainly file paths.
+- `counters.py` - methods relating to the handling of counters
+- `dreeve_api.py` - Dreeve API interface.
 - `generate.py` - generates a title/description given the config and activity data.
 - `geo.cpp` - C++ implementation of the point matching as mentioned already. Compiled using g++ as a static shared library with -O2 optimisation.
 - `main.py` - main module - holds the main program loop.
