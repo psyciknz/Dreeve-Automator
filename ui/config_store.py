@@ -35,6 +35,10 @@ class ConfigInvalid(ConfigError):
         self.message = message
 
 
+class ConfigValidationError(ConfigInvalid):
+    """The candidate config failed its validator before it was written."""
+
+
 class RevisionConflict(ConfigError):
     pass
 
@@ -133,14 +137,23 @@ class ConfigStore:
                 "config.json changed on disk since this page was loaded. "
                 "Reload the page to see the latest version.")
 
-    def update(self, fn: Callable[[dict], Any], expected_revision: str | None = None):
+    def update(
+        self,
+        fn: Callable[[dict], Any],
+        expected_revision: str | None = None,
+        validate: bool = True,
+    ):
         """Read-modify-write under a lock. ``fn`` mutates the dict in place
         and may return a value; the result is validated before it is saved."""
         with self._lock:
             self._check_revision(expected_revision)
             data = self.load()
             result = fn(data)
-            self._validator(data)
+            if validate:
+                try:
+                    self._validator(data)
+                except ConfigInvalid as exc:
+                    raise ConfigValidationError(exc.message) from exc
             self._write_text(dump(data))
             return result
 

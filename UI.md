@@ -15,9 +15,11 @@ upstream `configure.py` / `const.py` directly, so **validation is the automator'
 | Raw JSON | Edit the file directly (API key masked), validate, optional "save even if validation fails" |
 | Run & test | Placeholder - next phase (see below) |
 
-Every save is validated by upstream `configure.get_config()` before it touches disk, written atomically, and the
-previous version is kept in `backups/`. Saves carry the file's revision, so a change made elsewhere (hand edit,
-another tab) is refused instead of overwritten.
+Normal saves are validated by upstream `configure.get_config()` before they touch disk, written atomically, and
+the previous version is kept in `backups/`. Saves carry the file's revision, so a change made elsewhere (hand
+edit, another tab) is refused instead of overwritten. Renaming or removing a marker used by a template shows a
+validation warning and asks for confirmation before saving; the affected template remains flagged until its
+placeholder is updated.
 
 ## Run it
 

@@ -9,12 +9,12 @@ from werkzeug.exceptions import HTTPException
 
 from . import bridge
 from .config_store import (
-    SECRET_SENTINEL, ConfigInvalid, ItemNotFound, RevisionConflict,
+    SECRET_SENTINEL, ConfigInvalid, ConfigValidationError, ItemNotFound, RevisionConflict,
     default_config, redact_text,
 )
 from .validation import (
     available_placeholders, config_warnings, item_error, meta,
-    normalize_item, validate_config,
+    normalize_item, validate_config, validate_marker_value,
 )
 
 api = Blueprint("api", __name__, url_prefix="/api")
@@ -180,7 +180,12 @@ def get_markers():
 def put_marker(metric: str):
     if metric not in meta()["metrics"]:
         raise ItemNotFound(f"Unknown marker metric {metric!r}.")
-    value = _body().get("value")
+    body = _body()
+    value = body.get("value")
+    force = body.get("force", False)
+    if not isinstance(force, bool):
+        raise ConfigInvalid("'force' must be a boolean.")
+    validate_marker_value(metric, value)
 
     def apply(data: dict):
         markers = _section(data, "markers", dict)
@@ -189,7 +194,10 @@ def put_marker(metric: str):
         else:
             markers[metric] = value
 
-    _store().update(apply, _expected_revision())
+    try:
+        _store().update(apply, _expected_revision(), validate=not force)
+    except ConfigValidationError as exc:
+        return jsonify(error=exc.message, can_force=True), 422
     return get_markers()
 
 

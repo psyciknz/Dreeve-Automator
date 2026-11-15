@@ -60,6 +60,34 @@ def validate_config(data) -> None:
             configure.CONFIG_FILE, configure.counters = original
 
 
+def validate_marker_value(metric: str, value) -> None:
+    """Validate marker data without validating templates that may reference it."""
+    if value is None or value == {} or value == []:
+        return
+    configure = bridge.configure
+    validators = {
+        "distance": configure.validate_distance_markers,
+        "moving_time": configure.validate_moving_time_markers,
+        "elapsed_time": configure.validate_elapsed_time_markers,
+        "pace": configure.validate_pace_markers,
+        "start_time": configure.validate_start_time_markers,
+        "date": configure.validate_date_markers,
+        "elevation": configure.validate_elevation_markers,
+        "elevation_per_km": configure.validate_elevation_per_km_markers,
+        "cadence": configure.validate_cadence_markers,
+        "counters": configure.validate_counters,
+    }
+    with _lock:
+        original = configure.counters
+        configure.counters = _NO_COUNTER_IO
+        try:
+            validators[metric](value)
+        except Exception as exc:
+            raise ConfigInvalid(describe(exc)) from exc
+        finally:
+            configure.counters = original
+
+
 def markers_from_dict(data: dict):
     """Build the upstream Markers object the way get_config() does (no checks)."""
     markers = data.get("markers")

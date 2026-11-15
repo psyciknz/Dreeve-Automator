@@ -107,6 +107,32 @@ class Markers(ApiTestCase):
         self.put("/api/markers/distance", {"value": None})
         self.assertNotIn("distance", json.loads(self.store.read_text())["markers"])
 
+    def test_marker_rename_can_be_confirmed_when_template_reference_breaks(self):
+        self.seed(
+            markers={"counters": ["old"]},
+            templates=[{"title": "{counters.old}", "description": ""}],
+        )
+        rejected = self.put("/api/markers/counters", {"value": ["new"]})
+        self.assertEqual(rejected.status_code, 422)
+        self.assertIn("Invalid placeholder", rejected.get_json()["error"])
+        self.assertTrue(rejected.get_json()["can_force"])
+
+        saved = self.put("/api/markers/counters", {"value": ["new"], "force": True})
+        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(json.loads(self.store.read_text())["markers"]["counters"], ["new"])
+        names = [p["placeholder"] for p in self.client.get("/api/placeholders").get_json()["placeholders"]]
+        self.assertIn("counters.new", names)
+        self.assertNotIn("counters.old", names)
+
+    def test_confirmed_marker_save_still_rejects_invalid_marker_data(self):
+        self.seed(markers={})
+        response = self.put(
+            "/api/markers/distance",
+            {"value": {"bad": [[5, 1, "invalid"]]}, "force": True},
+        )
+        self.assertEqual(response.status_code, 422)
+        self.assertFalse(response.get_json().get("can_force", False))
+
     def test_unknown_metric_404(self):
         self.assertEqual(self.put("/api/markers/nope", {"value": {}}).status_code, 404)
 

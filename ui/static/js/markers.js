@@ -41,7 +41,17 @@
         try { value = JSON.parse(area.value); } catch (e) { showError(err, "Not valid JSON: " + e.message); return; }
       }
       try {
-        const res = await api("PUT", `/api/markers/${metric}`, { value });
+        let res;
+        try {
+          res = await api("PUT", `/api/markers/${metric}`, { value });
+        } catch (e) {
+          if (e.status !== 422 || !e.data || e.data.can_force !== true) throw e;
+          if (!confirm(`This marker change will leave part of the config invalid:\n\n${e.message}\n\nSave the marker anyway? You can fix affected templates afterward.`)) {
+            showError(err, e.message);
+            return;
+          }
+          res = await api("PUT", `/api/markers/${metric}`, { value, force: true });
+        }
         markers = res.markers;
         area.value = markers[metric] ? pretty(markers[metric]) : "";
         toast(`Saved ${metric}`);
