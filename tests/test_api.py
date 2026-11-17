@@ -179,6 +179,19 @@ class Templates(ApiTestCase):
 
 
 class RouteTemplates(ApiTestCase):
+    def test_underscore_api_path_lists_route_templates(self):
+        self.seed(route_templates=[{
+            "title": "Loop",
+            "description": "",
+            "restrict": {},
+            "points": [[-41.2, 174.8, 25]],
+        }])
+
+        response = self.client.get("/api/route_templates")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["items"][0]["title"], "Loop")
+
     def test_restrict_is_always_written(self):
         self.seed()
         r = self.post("/api/route-templates", {"title": "Loop", "description": "",

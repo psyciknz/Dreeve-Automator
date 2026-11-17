@@ -208,7 +208,9 @@ def put_marker(metric: str):
 
 
 # ---- templates and route templates -------------------------------------
-def _register_collection(path: str, key: str, is_route: bool) -> None:
+def _register_collection(
+    path: str, key: str, is_route: bool, aliases: tuple[str, ...] = (),
+) -> None:
     label = "route template" if is_route else "template"
 
     def list_items():
@@ -250,14 +252,18 @@ def _register_collection(path: str, key: str, is_route: bool) -> None:
         removed = _store().update(apply, _expected_revision())
         return _respond({"deleted": removed})
 
-    api.add_url_rule(path, f"list_{key}", list_items, methods=["GET"])
-    api.add_url_rule(path, f"create_{key}", create, methods=["POST"])
-    api.add_url_rule(f"{path}/<int:index>", f"replace_{key}", replace, methods=["PUT"])
-    api.add_url_rule(f"{path}/<int:index>", f"delete_{key}", delete, methods=["DELETE"])
+    for alias_index, route_path in enumerate((path, *aliases)):
+        endpoint_key = key if alias_index == 0 else f"{key}_alias_{alias_index}"
+        api.add_url_rule(route_path, f"list_{endpoint_key}", list_items, methods=["GET"])
+        api.add_url_rule(route_path, f"create_{endpoint_key}", create, methods=["POST"])
+        api.add_url_rule(
+            f"{route_path}/<int:index>", f"replace_{endpoint_key}", replace, methods=["PUT"])
+        api.add_url_rule(
+            f"{route_path}/<int:index>", f"delete_{endpoint_key}", delete, methods=["DELETE"])
 
 
 _register_collection("/templates", "templates", is_route=False)
-_register_collection("/route-templates", "route_templates", is_route=True)
+_register_collection("/route_templates", "route_templates", is_route=True, aliases=("/route-templates",))
 
 
 # ---- single-template run / test ---------------------------------------

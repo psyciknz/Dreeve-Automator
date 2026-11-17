@@ -3,8 +3,8 @@
 /* List + editor for templates and route templates (one script, two pages). */
 (async function () {
   const root = $("#collection");
-  const kind = root.dataset.kind;            // "templates" | "route-templates"
-  const isRoute = kind === "route-templates";
+  const kind = root.dataset.kind;            // "templates" | "route_templates"
+  const isRoute = kind === "route_templates";
   const endpoint = "/api/" + kind;
   const noun = isRoute ? "route template" : "template";
 

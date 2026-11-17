@@ -81,7 +81,7 @@
 
   try {
     await Promise.all([
-      loadCollection("route-templates", $("#route-templates")),
+      loadCollection("route_templates", $("#route-templates")),
       loadCollection("templates", $("#templates")),
     ]);
   } catch (err) {
