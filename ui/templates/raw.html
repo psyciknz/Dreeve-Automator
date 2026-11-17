@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Raw JSON</h1>
+<p class="muted">
+  Edit <code>config.json</code> directly. The API key is shown as <code>********</code> and kept
+  as it is when you save.
+</p>
+<textarea id="raw-text" class="code" spellcheck="false" rows="28"></textarea>
+<div id="raw-result" class="form-error" hidden></div>
+<div class="actions">
+  <button class="primary" id="raw-save">Save</button>
+  <button id="raw-validate">Validate</button>
+  <button id="raw-format">Format</button>
+  <button id="raw-reload">Reload from disk</button>
+  <label class="inline"><input type="checkbox" id="raw-force"> Save even if validation fails</label>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/raw.js') }}"></script>{% endblock %}

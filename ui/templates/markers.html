@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Markers</h1>
+<p class="muted">
+  Markers turn activity numbers into words. Each metric holds named sets of ranges; a template
+  uses one as <code>{metric.name}</code>, e.g. <code>{distance.category}</code>. Edit each metric as JSON
+  (a structured editor is planned). An empty box removes the metric.
+</p>
+<div id="markers"></div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/markers.js') }}"></script>{% endblock %}

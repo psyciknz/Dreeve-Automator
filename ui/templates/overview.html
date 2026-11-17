@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Overview</h1>
+
+<section class="card" id="status-card">
+  <h2>Config file</h2>
+  <p class="muted">Loading&hellip;</p>
+</section>
+
+<section class="card">
+  <h2>General settings</h2>
+  <form id="general-form" class="form-grid" autocomplete="off">
+    <label>Dreeve URL
+      <input type="url" id="g-url" placeholder="http://localhost:8080">
+    </label>
+    <label>Dreeve API key
+      <input type="password" id="g-key" placeholder="">
+      <small class="muted" id="g-key-hint"></small>
+    </label>
+    <label>Refresh interval (minutes)
+      <input type="number" id="g-refresh" step="1">
+      <small class="muted" id="g-refresh-hint"></small>
+    </label>
+    <fieldset>
+      <legend><label class="inline"><input type="checkbox" id="g-hr-on"> Heart rate zones</label></legend>
+      <p class="muted">Lower bound (bpm) of each zone; must increase from zone 1 to 5. Enables the <code>{hr_zones}</code> placeholder.</p>
+      <div class="hr-grid" id="g-hr"></div>
+    </fieldset>
+    <div class="form-error" id="general-error" hidden></div>
+    <div><button type="submit" class="primary">Save general settings</button></div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Backups</h2>
+  <p class="muted">The previous version of <code>config.json</code> is kept every time the UI changes it.</p>
+  <div id="backups"></div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/overview.js') }}"></script>{% endblock %}

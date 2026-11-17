@@ -1,0 +1,36 @@
+<div class="form-grid">
+  <div class="field">
+    <span class="label">Title</span>
+    <small class="muted">First alternative that can be filled in for the activity is used.</small>
+    <div id="titles"></div>
+  </div>
+  <div class="field">
+    <span class="label">Description</span>
+    <small class="muted">Same rule as titles. Line breaks are kept.</small>
+    <div id="descriptions"></div>
+  </div>
+  <div class="field">
+    <span class="label">Placeholders <small class="muted">(click to insert at the cursor)</small></span>
+    <div id="chips" class="chips"></div>
+  </div>
+  <label class="narrow">Priority
+    <input type="number" id="f-priority" step="1" placeholder="none">
+    <small class="muted">Lower number is tried first; blank is tried last.</small>
+  </label>
+
+  <fieldset>
+    <legend>Only apply when&hellip; <small class="muted">(leave empty for no restriction)</small></legend>
+    <div class="field">
+      <span class="label">Distance (km)</span>
+      <div id="r-distance"></div>
+    </div>
+    <div class="field">
+      <span class="label">Pace (seconds per km, e.g. 300 = 5:00/km)</span>
+      <div id="r-pace"></div>
+    </div>
+    <div class="field">
+      <span class="label">Start time</span>
+      <div id="r-start_time"></div>
+    </div>
+  </fieldset>
+</div>

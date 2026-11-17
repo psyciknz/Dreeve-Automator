@@ -1,1 +1,4 @@
-requests # Used to easily send requests to the Strava API.
+Flask>=3.0,<4
+gunicorn>=22.0
+# Needed by the vendored Dreeve-Automator code (dreeve_api.py) for the planned Run & test phase.
+requests

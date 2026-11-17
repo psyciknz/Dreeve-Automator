@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Run &amp; test</h1>
+
+<section class="card">
+  <h2>Activity</h2>
+  <label for="activity-url">Dreeve activity URL</label>
+  <input type="url" id="activity-url" required
+    placeholder="https://dreeve.example/activities/activity-<id>">
+  <p class="muted">Test previews the selected template without patching the activity or saving counter changes.</p>
+  <div class="form-error" id="run-error" hidden></div>
+</section>
+
+<section class="card">
+  <h2>Route templates</h2>
+  <div id="route-templates" class="run-list"></div>
+</section>
+
+<section class="card">
+  <h2>Templates</h2>
+  <div id="templates" class="run-list"></div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/run.js') }}"></script>{% endblock %}

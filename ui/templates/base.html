@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Dreeve Config{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('views.overview') }}">Dreeve Config</a>
+    <nav>
+      {% for key, endpoint, label in [
+        ('overview', 'views.overview', 'Overview'),
+        ('markers', 'views.markers', 'Markers'),
+        ('templates', 'views.templates', 'Templates'),
+        ('route-templates', 'views.route_templates', 'Route templates'),
+        ('raw', 'views.raw', 'Raw JSON'),
+        ('run', 'views.run', 'Run &amp; test'),
+      ] %}
+      <a href="{{ url_for(endpoint) }}" class="{{ 'active' if active == key else '' }}">{{ label|safe }}</a>
+      {% endfor %}
+    </nav>
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+  <div id="toasts" aria-live="polite"></div>
+  <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
