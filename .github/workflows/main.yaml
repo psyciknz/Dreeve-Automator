@@ -1,6 +1,7 @@
 name: Build and publish Docker image
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - main
@@ -32,16 +33,27 @@ jobs:
       - name: Determine image version
         id: version
         run: |
-          TAG="$(git tag --points-at "${{ github.event.pull_request.head.sha }}" | head -n 1)"
-
-          if [ -n "$TAG" ]; then
-            VERSION="$TAG"
-          else
-            VERSION="pr-${{ github.event.pull_request.number }}"
-          fi
-
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Using image version: $VERSION"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+              PR_NUMBER="${{ github.event.pull_request.number }}"
+              HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+        
+              TAG="$(git tag --points-at "$HEAD_SHA" | head -n 1)"
+        
+              if [ -n "$TAG" ]; then
+                VERSION="$TAG"
+              else
+                VERSION="pr-$PR_NUMBER"
+              fi
+            else
+              PR_NUMBER="manual"
+              HEAD_SHA="${{ github.sha }}"
+              VERSION="${{ github.sha }}"
+            fi
+        
+            echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "Using image version: $VERSION"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
