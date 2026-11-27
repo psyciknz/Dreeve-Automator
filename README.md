@@ -22,7 +22,7 @@ It is obviously assumed that you have an existing Strava account. Also remember 
 
 Warning: The program is not simple to use, particularly in terms of input. This is to maximise its flexibility. 
 
-Setup Requirements:
+### Setup Requirements:
 - The program has been designed to work on **Windows and Linux**. There is no reason it should not work on MacOS, but this has not been confirmed.
 - Ensure you create your own **Dreeve.App** API key for this program. This is needed because this project relies on the Strava API which is on a per-app basis. Start here: https://docs.dreeve.app./api. 
 - Ensure you have **Python 3.10** or above installed.
@@ -30,6 +30,22 @@ Setup Requirements:
 - Download and extract the ZIP file in the Release section of this repository.
 
 Assuming the steps above have ben followed, consult the [guide](GUIDE.md) to learn how to use this program.
+
+### Docker Setup
+Basic Docker-compose setup
+
+```
+services:
+  dreeve-automator:
+    #notes
+    image: ghcr.io/psyciknz/dreeve-automator:pr-
+    container_name: dreeve-automator
+    user: 1000:1001
+    volumes:
+      - ./dreeve-automator:/data
+    ports:
+      - 8000:8000
+```
 
 ## Advantages
 The program brings the following advantages by sprinkling some automation into Strava:
