@@ -17,8 +17,8 @@
     elevation: ["Metres climbed. Same row format as distance.", { climb: [[0, 100, "Flat"], [100, null, "Hilly"]] }],
     elevation_per_km: ["Metres climbed per km. Same row format as distance.", { hilliness: [[0, 10, "Flat"], [10, null, "Hilly"]] }],
     cadence: ["Steps per minute. Same row format as distance.", { rhythm: [[0, 160, "Relaxed"], [160, null, "Quick feet"]] }],
-    counters: ["A list of counter names. {counters.name} becomes the next number each time it is used; the automator keeps the running totals in counters.json.",
-      ["total"]],
+    counters: ["A JSON object mapping counter names (letters, numbers, underscores, or hyphens) to base values. {counters.name} increments before use, so a base of 99 makes the first value 100. Existing counters.json values take precedence; name-only arrays remain supported with a base of 0.",
+      { "parkrun-total": 99, "parkrun-city1": 0, "parkrun-city2": 10}],
   };
 
   const root = $("#markers");
@@ -28,7 +28,7 @@
 
   function card(metric) {
     const [hint, example] = HINTS[metric] || ["", {}];
-    const empty = metric === "counters" ? [] : {};
+    const empty = {};
     const current = markers[metric] ?? empty;
     const area = el("textarea", { class: "code", rows: 7, spellcheck: "false" });
     area.value = Object.keys(current).length || current.length ? pretty(current) : "";

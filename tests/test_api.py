@@ -127,6 +127,56 @@ class Markers(ApiTestCase):
         self.assertIn("counters.new", names)
         self.assertNotIn("counters.old", names)
 
+    def test_counter_markers_accept_integer_base_values(self):
+        names = [
+            "parkrun-total",
+            "parkrun-lowerhutt",
+            "parkrun-napier",
+            "parkrun-wellington",
+        ]
+        self.seed(
+            markers={"counters": names},
+            templates=[{
+                "title": "{counters.parkrun-total}",
+                "description": "",
+            }],
+        )
+        self.assertTrue(self.client.get("/api/status").get_json()["valid"])
+
+        valid = self.put("/api/markers/counters", {
+            "value": {
+                "parkrun-total": 99,
+                "parkrun-lowerhutt": 0,
+                "parkrun-napier": 0,
+                "parkrun-wellington": 1,
+            },
+        })
+        self.assertEqual(valid.status_code, 200, valid.get_json())
+        placeholders = {
+            item["placeholder"]
+            for item in self.client.get("/api/placeholders").get_json()["placeholders"]
+        }
+        self.assertIn("counters.parkrun-total", placeholders)
+
+        invalid = self.put("/api/markers/counters", {
+            "value": {"parkrun-total": True},
+        })
+        self.assertEqual(invalid.status_code, 422)
+
+    def test_counter_bases_initialize_missing_values_only(self):
+        import configure
+
+        with (
+            patch.object(
+                configure.counters, "get_counters",
+                return_value={"existing": 5},
+            ),
+            patch.object(configure.counters, "update_counters") as update,
+        ):
+            configure.validate_counters({"existing": 99, "new": 8})
+
+        update.assert_called_once_with({"existing": 5, "new": 8})
+
     def test_confirmed_marker_save_still_rejects_invalid_marker_data(self):
         self.seed(markers={})
         response = self.put(
@@ -245,7 +295,7 @@ class SingleTemplateRun(ApiTestCase):
 
     def test_test_uses_selected_template_without_patching_or_saving_counters(self):
         self.seed(
-            markers={"counters": ["total"]},
+            markers={"counters": {"total": 99}},
             templates=[
                 {"title": "First", "description": ""},
                 {"title": "{counters.total}", "description": "{counters.total}"},
@@ -265,7 +315,7 @@ class SingleTemplateRun(ApiTestCase):
             })
 
         self.assertEqual(response.status_code, 200, response.get_json())
-        self.assertEqual(response.get_json()["proposed"], {"title": "1", "description": "1"})
+        self.assertEqual(response.get_json()["proposed"], {"title": "100", "description": "100"})
         self.assertFalse(response.get_json()["applied"])
         self.assertEqual(
             get_activity.call_args.args[0],
@@ -276,7 +326,7 @@ class SingleTemplateRun(ApiTestCase):
 
     def test_run_increments_reused_counter_once_per_generation(self):
         self.seed(
-            markers={"counters": ["total"]},
+            markers={"counters": {"total": 99}},
             templates=[{
                 "title": "{counters.total}",
                 "description": "{counters.total}",
@@ -302,11 +352,11 @@ class SingleTemplateRun(ApiTestCase):
             })
 
         self.assertEqual(
-            first.get_json()["proposed"], {"title": "1", "description": "1"})
+            first.get_json()["proposed"], {"title": "100", "description": "100"})
         self.assertEqual(
-            second.get_json()["proposed"], {"title": "2", "description": "2"})
+            second.get_json()["proposed"], {"title": "101", "description": "101"})
         self.assertEqual(
-            json.loads((DATA_DIR / "counters.json").read_text()), {"total": 2})
+            json.loads((DATA_DIR / "counters.json").read_text()), {"total": 101})
         self.assertEqual(update_activity.call_count, 2)
 
     def test_run_patches_selected_template_title_and_description(self):

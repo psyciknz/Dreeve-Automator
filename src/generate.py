@@ -371,8 +371,9 @@ def get_counter_text(
     placeholder: str,
     counter_values: dict[str, int] | None = None,
     counter_cache: dict[str, str] | None = None,
+    base_value: int = 0,
 ) -> str:
-    """Returns a value for a specfied counter.  Updated the current value after user."""
+    """Returns the next counter value, starting from its configured base."""
     metric, key = placeholder.split(".")
     if metric != "counters":
         raise RuntimeError
@@ -381,7 +382,7 @@ def get_counter_text(
     persistent = counter_values is None
     counters_dict = counter_values if counter_values is not None else counters.get_counters()
     if key not in counters_dict:
-        counters_dict[key] = 0
+        counters_dict[key] = base_value
     counters_dict[key] += 1
     if persistent:
         counters.update_counters(counters_dict)
@@ -420,7 +421,14 @@ def get_placeholder_value(
                 activity_.start_date_time.date(), placeholder,
                 config, is_description)
         case "counters":
-            return get_counter_text(placeholder, counter_values, counter_cache)
+            key = placeholder.split(".")[1]
+            configured_counters = (
+                config.markers.counters if config.markers is not None else {})
+            base_value = (
+                configured_counters.get(key, 0)
+                if isinstance(configured_counters, dict) else 0)
+            return get_counter_text(
+                placeholder, counter_values, counter_cache, base_value)
         case _:
             value = {
                 "distance": activity_.distance,

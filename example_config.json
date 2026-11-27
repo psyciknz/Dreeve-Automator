@@ -60,9 +60,9 @@
         "cadence": {
 
         },
-        "counters": [
-            "countername"
-        ]
+        "counters": {
+            "countername": 99
+        }
     },
     "templates": [
         {
@@ -78,7 +78,7 @@
     ],
     "route_templates": [
         {
-            "title": "Forest Run - {pace.intensity} - {counter.countername}",
+            "title": "Forest Run - {pace.intensity} - {counters.countername}",
             "description": "",
             "priority": null,
             "restrict": {
