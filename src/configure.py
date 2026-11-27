@@ -41,7 +41,7 @@ class Markers:
     elevation: dict[str, list]
     elevation_per_km: dict[str, list]
     cadence: dict[str, list]
-    counters: dict[str, list]
+    counters: list[str] | dict[str, int]
 
 
 @dataclass
@@ -123,29 +123,34 @@ def validate_heart_rate_zones(heart_rate_zones: dict[str, int]) -> None:
         raise ValueError(
             "Heart rate thresholds must increase for increasing zones.")
         
-def validate_counters(counters_list: list) -> None:
-    """Ensure counters are valid."""
-    if not isinstance(counters_list, list):
-        raise TypeError("Counters must be a list.")
-    
-    counters_isdirty = False
-    counters_dict = counters.get_counters()
-    
-    # check for anything in the counters file because it's been used once
-    if counters_dict is not None and len(counters_dict) > 0:
-        for counter in counters_list:
-            if counter in counters_dict and not isinstance(counters_dict[counter], int):
-                raise TypeError("Counter values must be integers.")
-            if counter not in counters_dict:
-                counters_dict[counter] = 0
-                counters_isdirty = True
-                
+def validate_counters(counter_markers: list[str] | dict[str, int]) -> None:
+    """Validate counter names and initialize missing values from their bases."""
+    if isinstance(counter_markers, list):
+        initial_values = dict.fromkeys(counter_markers, 0)
+    elif isinstance(counter_markers, dict):
+        initial_values = counter_markers
     else:
-        # write the initial counters file with the counter markers.
-        for counter in counters_list:
-            counters_dict[counter] = 0
+        raise TypeError(
+            "Counters must be an array of names or an object of base values.")
+
+    for name, base_value in initial_values.items():
+        if not isinstance(name, str) or not valid_counter_key(name):
+            raise ValueError(
+                "Counter names may contain letters, numbers, underscores, "
+                "and hyphens.")
+        if type(base_value) is not int:
+            raise TypeError("Counter base values must be integers.")
+
+    counters_dict = counters.get_counters()
+    counters_isdirty = False
+    for name, base_value in initial_values.items():
+        if name in counters_dict:
+            if type(counters_dict[name]) is not int:
+                raise TypeError("Counter values must be integers.")
+        else:
+            counters_dict[name] = base_value
             counters_isdirty = True
-        
+
     if counters_isdirty:
         counters.update_counters(counters_dict)
     
@@ -158,6 +163,12 @@ def valid_marker_key(key: str) -> bool:
     # If underscores removed and string becomes empty,
     # default to "a", returning True.
     return key and (key.replace("_", "") or "a").isalnum()
+
+
+def valid_counter_key(key: str) -> bool:
+    """Return whether a counter name uses letters, numbers, '_' or '-'."""
+    return bool(key) and (
+        key.replace("_", "").replace("-", "") or "a").isalnum()
 
 
 def validate_title(title: str | list[str] | None, metric: str) -> None:

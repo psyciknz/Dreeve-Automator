@@ -2,9 +2,11 @@
 {% block content %}
 <h1>Markers</h1>
 <p class="muted">
-  Markers turn activity numbers into words. Each metric holds named sets of ranges; a template
-  uses one as <code>{metric.name}</code>, e.g. <code>{distance.category}</code>. Edit each metric as JSON
-  (a structured editor is planned). An empty box removes the metric.
+  Markers turn activity numbers into words. Most metrics hold named sets of ranges; a template
+  uses one as <code>{metric.name}</code>, e.g. <code>{distance.category}</code>. Counters are different:
+  enter a JSON object mapping each counter name to its base value. The counter increments before use,
+  so a base of <code>99</code> produces <code>100</code> the first time. Existing values in
+  <code>counters.json</code> are kept. Edit each metric as JSON; an empty box removes the metric.
 </p>
 <div id="markers"></div>
 {% endblock %}

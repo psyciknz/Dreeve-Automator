@@ -5,6 +5,11 @@ on:
   pull_request:
     branches:
       - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
 
 permissions:
   contents: read
@@ -12,6 +17,7 @@ permissions:
 
 jobs:
   build-and-push:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
 
     steps:
@@ -68,3 +74,101 @@ jobs:
             org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  release:
+    if: github.event.action == 'closed' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Check out merged commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine release version
+        id: version
+        env:
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [[ ! "$MERGE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::The merged pull request has no valid merge commit SHA."
+            exit 1
+          fi
+
+          VERSION="map-pr-${PR_NUMBER}-${MERGE_SHA:0:12}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build and publish release Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/dreeve-automator:${{ steps.version.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/dreeve-automator:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.event.pull_request.merge_commit_sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create source ZIP
+        id: package
+        env:
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          ASSET="dreeve-automator-${VERSION}.zip"
+          git archive --format=zip \
+            --prefix="dreeve-automator-${VERSION}/" \
+            --output="$ASSET" "$MERGE_SHA"
+          echo "asset=$ASSET" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          OWNER: ${{ github.repository_owner }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          VERSION: ${{ steps.version.outputs.version }}
+          ASSET: ${{ steps.package.outputs.asset }}
+        run: |
+          cat > release-notes.md <<EOF
+          Release from merged PR #${PR_NUMBER} at commit \`${MERGE_SHA}\`.
+
+          ## Docker
+
+          Pull this release:
+
+          \`\`\`sh
+          docker pull ghcr.io/${OWNER}/dreeve-automator:${VERSION}
+          \`\`\`
+
+          Or pull the latest merged image:
+
+          \`\`\`sh
+          docker pull ghcr.io/${OWNER}/dreeve-automator:latest
+          \`\`\`
+
+          The attached ZIP contains the tracked source package for this release.
+          EOF
+
+          gh release create "$VERSION" "$ASSET" \
+            --target "$MERGE_SHA" \
+            --title "Dreeve Automator $VERSION" \
+            --notes-file release-notes.md

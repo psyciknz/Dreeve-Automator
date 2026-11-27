@@ -370,23 +370,31 @@ def get_weather_text(weather: activity.Weather) -> str:
 def get_counter_text(
     placeholder: str,
     counter_values: dict[str, int] | None = None,
+    counter_cache: dict[str, str] | None = None,
+    base_value: int = 0,
 ) -> str:
-    """Returns a value for a specfied counter.  Updated the current value after user."""
+    """Returns the next counter value, starting from its configured base."""
     metric, key = placeholder.split(".")
     if metric != "counters":
         raise RuntimeError
+    if counter_cache is not None and key in counter_cache:
+        return counter_cache[key]
     persistent = counter_values is None
     counters_dict = counter_values if counter_values is not None else counters.get_counters()
     if key not in counters_dict:
-        counters_dict[key] = 0
+        counters_dict[key] = base_value
     counters_dict[key] += 1
     if persistent:
         counters.update_counters(counters_dict)
-    return str(counters_dict[key])
+    value = str(counters_dict[key])
+    if counter_cache is not None:
+        counter_cache[key] = value
+    return value
 
 def get_placeholder_value(
     activity_: activity.Activity, placeholder: str, config: configure.Config,
     is_description: bool, counter_values: dict[str, int] | None = None,
+    counter_cache: dict[str, str] | None = None,
 ) -> str:
     """
     Takes a placeholder and interprets it in the context of an activity.
@@ -413,7 +421,14 @@ def get_placeholder_value(
                 activity_.start_date_time.date(), placeholder,
                 config, is_description)
         case "counters":
-            return get_counter_text(placeholder, counter_values)
+            key = placeholder.split(".")[1]
+            configured_counters = (
+                config.markers.counters if config.markers is not None else {})
+            base_value = (
+                configured_counters.get(key, 0)
+                if isinstance(configured_counters, dict) else 0)
+            return get_counter_text(
+                placeholder, counter_values, counter_cache, base_value)
         case _:
             value = {
                 "distance": activity_.distance,
@@ -432,6 +447,7 @@ def format_placeholder_string(
     activity_: activity.Activity, placeholder_string: str,
     config: configure.Config, is_description: bool,
     counter_values: dict[str, int] | None = None,
+    counter_cache: dict[str, str] | None = None,
 ) -> str:
     """
     Attempts to fill in a placeholder string with given text based on
@@ -460,7 +476,8 @@ def format_placeholder_string(
         if placeholder_string[i] == "}" and start_i is not None:
             placeholder = placeholder_string[start_i:i]
             placeholder_value = get_placeholder_value(
-                activity_, placeholder, config, is_description, counter_values)
+                activity_, placeholder, config, is_description, counter_values,
+                counter_cache)
             result.append(placeholder_value)
             start_i = None
             continue
@@ -473,6 +490,7 @@ def generate_text(
     activity_: activity.Activity, placeholder_strings: str | list[str],
     config: configure.Config, is_description: bool = False,
     counter_values: dict[str, int] | None = None,
+    counter_cache: dict[str, str] | None = None,
 ) -> str:
     """
     Attempts to generate a title/description given
@@ -481,11 +499,13 @@ def generate_text(
     """
     if isinstance(placeholder_strings, str):
         placeholder_strings = [placeholder_strings]
+    if counter_cache is None:
+        counter_cache = {}
     for placeholder_string in placeholder_strings:
         with suppress(RuntimeError):
             return format_placeholder_string(
                 activity_, placeholder_string, config, is_description,
-                counter_values)
+                counter_values, counter_cache)
     raise RuntimeError
 
 
@@ -510,10 +530,13 @@ def generate_for_template(
     ):
         raise RuntimeError("The activity does not pass this template's restrictions.")
 
+    counter_cache: dict[str, str] = {}
     title = generate_text(
-        activity_, template.title, config, counter_values=counter_values)
+        activity_, template.title, config, counter_values=counter_values,
+        counter_cache=counter_cache)
     description = generate_text(
-        activity_, template.description, config, True, counter_values)
+        activity_, template.description, config, True, counter_values,
+        counter_cache)
     return title, description
 
 
@@ -547,6 +570,7 @@ def generate_title_and_description(
         lat_longs = activity_.lat_long_stream
         route_templates = sorted(
             config.route_templates or [], key=priority_key)
+        counter_cache: dict[str, str] = {}
         if route_templates:
             if c_geo_library is not None:
                 lat_longs = get_c_lat_long_array(lat_longs)
@@ -557,11 +581,14 @@ def generate_title_and_description(
                     continue
                 with suppress(RuntimeError):
                     title = generate_text(
-                        activity_, route_template.title, config)
+                        activity_, route_template.title, config,
+                        counter_cache=counter_cache)
                     description = generate_text(
-                        activity_, route_template.description, config, True)
+                        activity_, route_template.description, config, True,
+                        counter_cache=counter_cache)
                     return title, description
     templates = sorted(config.templates or [], key=priority_key)
+    counter_cache = {}
     for template in templates:
         if (
             template.restriction is not None
@@ -569,9 +596,12 @@ def generate_title_and_description(
         ):
             continue
         with suppress(RuntimeError):
-            title = generate_text(activity_, template.title, config)
+            title = generate_text(
+                activity_, template.title, config,
+                counter_cache=counter_cache)
             description = generate_text(
-                activity_, template.description, config, True)
+                activity_, template.description, config, True,
+                counter_cache=counter_cache)
             return title, description
     logging.warning(
         f"No suitable template found for activity {activity_.id}, skipping...")
