@@ -265,7 +265,7 @@ class SingleTemplateRun(ApiTestCase):
             })
 
         self.assertEqual(response.status_code, 200, response.get_json())
-        self.assertEqual(response.get_json()["proposed"], {"title": "1", "description": "2"})
+        self.assertEqual(response.get_json()["proposed"], {"title": "1", "description": "1"})
         self.assertFalse(response.get_json()["applied"])
         self.assertEqual(
             get_activity.call_args.args[0],
@@ -273,6 +273,41 @@ class SingleTemplateRun(ApiTestCase):
         )
         update_activity.assert_not_called()
         self.assertFalse((DATA_DIR / "counters.json").exists())
+
+    def test_run_increments_reused_counter_once_per_generation(self):
+        self.seed(
+            markers={"counters": ["total"]},
+            templates=[{
+                "title": "{counters.total}",
+                "description": "{counters.total}",
+            }],
+        )
+        import activity
+
+        with (
+            patch.object(activity, "get_activity", return_value=self.fake_activity()),
+            patch.object(activity, "update_activity") as update_activity,
+        ):
+            first = self.post("/api/run", {
+                "activity_url": self.activity_url,
+                "template_type": "templates",
+                "template_index": 0,
+                "action": "run",
+            })
+            second = self.post("/api/run", {
+                "activity_url": self.activity_url,
+                "template_type": "templates",
+                "template_index": 0,
+                "action": "run",
+            })
+
+        self.assertEqual(
+            first.get_json()["proposed"], {"title": "1", "description": "1"})
+        self.assertEqual(
+            second.get_json()["proposed"], {"title": "2", "description": "2"})
+        self.assertEqual(
+            json.loads((DATA_DIR / "counters.json").read_text()), {"total": 2})
+        self.assertEqual(update_activity.call_count, 2)
 
     def test_run_patches_selected_template_title_and_description(self):
         self.seed(templates=[{
