@@ -12,6 +12,7 @@ on:
       - closed
 
 permissions:
+  actions: write
   contents: read
   packages: write
 
